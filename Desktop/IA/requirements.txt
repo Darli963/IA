@@ -4,3 +4,4 @@ joblib
 scikit-learn
 lightgbm
 requests
+python-dotenv

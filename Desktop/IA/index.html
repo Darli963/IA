@@ -30,6 +30,14 @@
         <span id="status" class="badge">Cargando modelo...</span>
         <button id="reload">Recargar info</button>
       </div>
+      <div class="toolbar">
+        <div class="field" style="flex:1">
+          <label>API Base (opcional, ej: https://tu-api.fly.dev)</label>
+          <input id="apiBase" type="text" placeholder="https://tu-api.ejemplo.com">
+        </div>
+        <button id="saveApiBase">Guardar API Base</button>
+        <button id="clearApiBase">Usar origen actual</button>
+      </div>
       <div class="field">
         <label>Modo de entrada</label>
         <select id="mode">
@@ -50,7 +58,7 @@
     </div>
   </div>
   <script>
-    const state={base:"",features:[],pathVariant:""};
+    const state={base:"",features:[],pathVariant:"",overrideBase:null};
     const statusEl=document.getElementById('status');
     const reloadBtn=document.getElementById('reload');
     const modeSel=document.getElementById('mode');
@@ -59,10 +67,35 @@
     const jsonArea=document.getElementById('jsonArea');
     const predictBtn=document.getElementById('predict');
     const outputEl=document.getElementById('output');
+    const apiBaseInput=document.getElementById('apiBase');
+    const saveApiBaseBtn=document.getElementById('saveApiBase');
+    const clearApiBaseBtn=document.getElementById('clearApiBase');
+
+    function loadOverrideBase(){
+      const saved=localStorage.getItem('api_base')||'';
+      if(saved){
+        state.overrideBase=saved.trim();
+        apiBaseInput.value=saved;
+      }
+    }
 
     async function fetchModelInfo(){
       statusEl.textContent='Cargando modelo...';
       const origin=window.location.origin;
+      if(state.overrideBase){
+        try{
+          const res=await fetch(state.overrideBase.replace(/\/$/,'')+'/model-info');
+          if(res.ok){
+            const data=await res.json();
+            state.base=state.overrideBase.replace(/\/$/,'');
+            state.pathVariant='';
+            state.features=Array.isArray(data.feature_names)?data.feature_names:[];
+            statusEl.textContent='Modelo detectado en API externa: '+(data.model_type||'N/D');
+            renderFeatures();
+            return;
+          }
+        }catch(e){}
+      }
       const paths=['/model-info','/api/model-info'];
       for(const p of paths){
         try{
@@ -122,7 +155,8 @@
 
     predictBtn.addEventListener('click',async()=>{
       outputEl.textContent='';
-      const url=state.base+(state.pathVariant||'')+'/predict';
+      const base=(state.overrideBase||state.base).replace(/\/$/,'');
+      const url=base+(state.pathVariant||'')+'/predict';
       let payload={};
       if(modeSel.value==='features'){
         const list=(state.features&&state.features.length)?state.features:[];
@@ -151,6 +185,21 @@
     });
 
     fetchModelInfo();
+    loadOverrideBase();
+    saveApiBaseBtn.addEventListener('click',()=>{
+      const v=(apiBaseInput.value||'').trim();
+      if(v){
+        localStorage.setItem('api_base',v);
+        state.overrideBase=v;
+        fetchModelInfo();
+      }
+    });
+    clearApiBaseBtn.addEventListener('click',()=>{
+      localStorage.removeItem('api_base');
+      state.overrideBase=null;
+      apiBaseInput.value='';
+      fetchModelInfo();
+    });
   </script>
 </body>
 </html>

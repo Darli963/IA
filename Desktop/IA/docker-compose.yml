@@ -1,0 +1,8 @@
+version: "3.9"
+services:
+  ia-api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_URL=https://github.com/Darli963/IA/releases/download/v1.0.0/mejor_modelo.2.pkl
