@@ -1,7 +1,0 @@
-fastapi
-uvicorn
-joblib
-scikit-learn
-lightgbm
-requests
-python-dotenv
